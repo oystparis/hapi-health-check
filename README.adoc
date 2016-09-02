@@ -1,0 +1,109 @@
+= hapi-healthcheck
+
+A https://github.com/hapijs/hapi[hapi] plugin used to add a health check to a server.
+
+Internally it is using the library https://github.com/atomantic/hapi-and-healthy[hapi-and-healthy].
+
+== Requirements
+
+* nodejs >= 4
+* npm >= 2
+
+== Install
+
+[source,shell]
+.Add the dependency to your package.json
+----
+npm install hapi-healthcheck --save
+----
+
+== Usage
+=== Importing the lib
+
+[source,javascript]
+.Require the lib if using ES5
+----
+var phoneValidator = require('joi-phone-validator');
+----
+
+[source,javascript]
+.Import the module if using ES6
+----
+import phoneValidator from 'joi-phone-validator'
+----
+
+=== Using the lib
+
+[source,javascript]
+.Register the plugin in your Hapi server (ES6 syntax)
+----
+import hapiHealthcheck from 'hapi-healthcheck'
+
+Server.register({
+  register: hapiHealthcheck,
+  // options are explained below. Options are not mandatory. Default values are the one used in this snippet.
+  options: {
+    path: '/status',
+    health_checks: [{}],
+    custom_health_checks: [],
+    optional_health_checks: [{}],
+    custom_optional_health_checks: [],
+  }
+}, (err) => {
+  // handle error
+})
+----
+
+[source,javascript]
+.Use built-in healthchecks
+----
+Server.register({
+  register: hapiHealthcheck,
+  options: {
+    path: '/status',
+    // you can choose among all these built-in health checks
+    health_checks: [
+        {
+          type: 'postgres',
+          options: {
+            url: 'POSTGRES_URL'
+        },
+        {
+          type: 'redis',
+          options: {
+            url: 'REDIS_URL'
+        },
+        {
+          type: 's3',
+          options: {
+            access_key_id: 'ACCESS_KEY_ID',
+            secret_access_key: 'SECRET_ACCESS_KEY'
+        },
+        {
+          type: 'nats',
+          options: {
+            url: 'NATS_URL'
+        }
+    ]
+  }
+})
+----
+
+Other options are the following :
+
+* `custom_health_checks` : an array of functions doing custom health checks.
+* `optional_health_checks` : same type of array as `health_checks` but if one of theses checks fail, the plugin will not return a failure but a warning.
+* `custom_optional_health_checks` : an array of functions doing custom health checks. If one of theses health checks fails, the plugin will not return a failure but a warning.
+
+For others use cases, you can look at the tests in the `test` directory.
+
+== Run tests
+
+[source,shell]
+----
+npm test
+----
+
+== Licence
+
+link:LICENCE[MIT]
