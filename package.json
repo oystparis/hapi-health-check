@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OystParis/hapi-healthcheck-plugin.git"
+    "url": "git+https://github.com/OystParis/hapi-health-check.git"
   },
   "keywords": [
     "hapi",
@@ -28,9 +28,9 @@
   "author": "Florian Boulay",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/OystParis/hapi-healthcheck-plugin/issues"
+    "url": "https://github.com/OystParis/hapi-health-check/issues"
   },
-  "homepage": "https://github.com/OystParis/hapi-healthcheck-plugin#readme",
+  "homepage": "https://github.com/OystParis/hapi-health-check#readme",
   "devDependencies": {
     "babel-cli": "~6.14.0",
     "babel-eslint": "~6.1.2",
