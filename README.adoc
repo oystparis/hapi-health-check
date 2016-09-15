@@ -1,6 +1,13 @@
 = hapi-health-check
 
-A https://github.com/hapijs/hapi[hapi] plugin used to add a health check to a server.
+image:https://travis-ci.org/OystParis/hapi-health-check.svg?branch=master["ci", link="https://travis-ci.org/OystParis/hapi-health-check"]
+image:https://badge.fury.io/js/hapi-health-check.svg["npm version", link="https://badge.fury.io/js/hapi-health-check"]
+image:https://img.shields.io/npm/dt/hapi-health-check.svg["downloads", link="https://www.npmjs.com/package/hapi-health-check"]
+
+'''
+
+[.lead]
+A https://github.com/hapijs/hapi[hapi] plugin used to add a health check to a web server.
 
 Internally it is using the library https://github.com/atomantic/hapi-and-healthy[hapi-and-healthy].
 
@@ -54,6 +61,13 @@ Server.register({
 })
 ----
 
+This library provides several built-in health checks. For now, the following health checks are implemented (case is important):
+
+* `postgres` : a check for https://www.postgresql.org/
+* `redis` : a check for http://redis.io/
+* `s3` : a check for https://aws.amazon.com/s3/
+* `nats` : a check for http://nats.io/
+
 [source,javascript]
 .Use built-in healthchecks
 ----
@@ -62,28 +76,28 @@ Server.register({
   options: {
     path: '/status',
     // you can choose among all these built-in health checks
-    health_checks: [
-        {
+    health_checks: [{
           type: 'postgres',
           options: {
             url: 'POSTGRES_URL',
             ssl: false         // default value
-        },
-        {
+          }
+        },{
           type: 'redis',
           options: {
             url: 'REDIS_URL'
-        },
-        {
+          }
+        },{
           type: 's3',
           options: {
             access_key_id: 'ACCESS_KEY_ID',
             secret_access_key: 'SECRET_ACCESS_KEY'
-        },
-        {
+          }
+        },{
           type: 'nats',
           options: {
             url: 'NATS_URL'
+          }
         }
     ]
   }
@@ -96,15 +110,161 @@ Other options are the following :
 * `feature_health_checks` : same type of array as `health_checks` but if one of theses checks fail, the plugin will not return a failure but a warning.
 * `custom_feature_health_checks` : an array of functions doing custom health checks. If one of theses health checks fails, the plugin will not return a failure but a warning.
 
+IMPORTANT: Add more code snippets using the above options
+
 For others use cases, you can look at the tests in the `test` directory.
+
+== Call the health check URL
+
+=== Health check without parameters
+
+The health check URL without any parameter is fast and can be used with load balancers.
+
+[source]
+.Calling a successful `GET /status`
+----
+HTTP/1.1 200 OK
+content-type: text/plain; charset=utf-8
+etag: "R09PRA=="
+cache-control: no-cache
+content-length: 4
+vary: accept-encoding
+accept-ranges: bytes
+Date: Wed, 07 Sep 2016 08:28:43 GMT
+Connection: keep-alive
+
+GOOD
+----
+
+[source]
+.Calling a failed health check on  `GET /status`
+----
+HTTP/1.1 200 OK
+content-type: text/plain; charset=utf-8
+etag: "R09PRA=="
+cache-control: no-cache
+content-length: 4
+vary: accept-encoding
+accept-ranges: bytes
+Date: Wed, 07 Sep 2016 08:28:43 GMT
+Connection: keep-alive
+
+BAD
+----
+
+=== Health check with parameters
+
+The health check URL without any parameter is slow because it runs every checks and can be used to monitor the application and the backends.
+
+`v` parameter stands for verbose.
+
+[source]
+.Calling a successful `GET /status?v`
+----
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+etag: "eyJzZXJ2aWNlIjp7InN0YXR1cyI6eyJzdGF0ZSI6IkdPT0QiLCJtZXNzYWdlIjpbIkRhdGFiYXNlIGlzIGF2YWlsYWJsZSIsIlJlZGlzIGlzIGF2YWlsYWJsZSIsIm5vIGZlYXR1cmUgdGVzdHMgaGF2ZSBiZWVuIGRlZmluZWQiXX19fQ=="
+cache-control: no-cache
+content-length: 475
+vary: accept-encoding
+accept-ranges: bytes
+Date: Wed, 07 Sep 2016 08:29:12 GMT
+Connection: keep-alive
+
+{
+   "service":{
+      "status":{
+         "state":"GOOD",
+         "message":[
+            "Database is available", // <1>
+            "Redis is available", // <2>
+            "no feature tests have been defined"
+         ],
+         "published":"2016-09-07T08:29:12.395Z"
+      },
+      "custom":{
+         "health":{
+            "cpu_load":[  // <3>
+               0.91259765625,
+               1.099609375,
+               0.91748046875
+            ],
+            "mem_free":19168661504,
+            "mem_free_percent":0.5707493473368196,
+            "mem_total":33585078272,
+            "os_uptime":60026
+         }
+      },
+      "env":"docker",  // <4>
+      "id":"b2bd7cef1c0a52e2b47ed60ec8f04e1a59928d73",
+      "name":"hapi-health-check", // <5>
+      "schema":"1.1.0",
+      "version":"1.0.0" // <6>
+   }
+}
+----
+<1> Message returned by postgres health check
+<2> Message returned by redis health check
+<3> 1, 5, and 15 minute load averages. More details https://nodejs.org/api/os.html#os_os_loadavg[here]
+<4> `NODE_ENV` variable or `DEV` as default value
+<5> name of your application read from you `package.json` or name of this plugin as default value
+<6> version of your application read from you `package.json` or version of this plugin as default value
+
+`h` parameter stands for human readable.
+
+[source]
+.Calling successful `GET /status?v&h`
+----
+HTTP/1.1 200 OK
+content-type: application/json; charset=utf-8
+etag: "eyJzZXJ2aWNlIjp7InN0YXR1cyI6eyJzdGF0ZSI6IkdPT0QiLCJtZXNzYWdlIjpbIkRhdGFiYXNlIGlzIGF2YWlsYWJsZSIsIlJlZGlzIGlzIGF2YWlsYWJsZSIsIm5vIGZlYXR1cmUgdGVzdHMgaGF2ZSBiZWVuIGRlZmluZWQiXX19fQ=="
+cache-control: no-cache
+content-length: 492
+vary: accept-encoding
+accept-ranges: bytes
+Date: Wed, 07 Sep 2016 08:48:13 GMT
+Connection: keep-alive
+
+{
+   "service":{
+      "status":{
+         "state":"GOOD",
+         "message":[
+            "Database is available",
+            "Redis is available",
+            "no feature tests have been defined"
+         ],
+         "published":"2016-09-07T08:30:57.677Z"
+      },
+      "custom":{
+         "health":{
+            "cpu_load":[
+               0.95654296875,
+               1.076171875,
+               0.92822265625
+            ],
+            "mem_free":"19.15 GB",
+            "mem_free_percent":"0.57%",
+            "mem_total":"33.59 GB",
+            "os_uptime":"16 hours, 42 minutes, 11 seconds"
+         }
+      },
+      "env":"docker",
+      "id":"b2bd7cef1c0a52e2b47ed60ec8f04e1a59928d73",
+      "name":"hapi-health-check",
+      "schema":"1.1.0",
+      "version":"1.0.0"
+   }
+}
+----
 
 == Run tests
 
 To run the tests, you must define some environment variables to execute the tests (or put them in a `.env` file at the root of this project):
 
-* `DATABASE_URL` : url the Postgres database
-* `REDIS_URL` : url of Redis
-* `NATS_URL` : url of nats
+* `DATABASE_URL` : url the https://www.postgresql.org/[Postgres] database
+* `REDIS_URL` : url of http://nats.io/[Redis]
+* `NATS_URL` : url of http://nats.io/[Nats]
 * `ACCESS_KEY_ID` : access key to Amazon S3
 * `SECRET_ACCESS_KEY` : secret access key to amazon S3
 
